@@ -54,22 +54,26 @@ def get_account_expiration_date(account_id, tag_name):
     response = org_client.list_tags_for_resource(ResourceId=account_id)
     for tag in response["Tags"]:
         if tag["Key"] == tag_name:
-            return tag["Value"]
+            try:
+                datetime.date.fromisoformat(tag["Value"])
+                return tag["Value"]
+            except ValueError:
+                raise ValueError("Incorrect data format, should be YYYY-MM-DD")
     return None
 
-# list accounts in AWS OU called "Sandbox"
 
 root_id = org_client.list_roots()['Roots'][0]['Id']
 print(f"Root ID: {root_id}")
 ou_id = get_ou_id(root_id=root_id, ou_name="Sandbox")
 print(f"Sandbox OU ID: {ou_id}")
-if ou_id is None:
+if ou_id is None: 
     print("Sandbox OU not found.")
     exit(1)
 accounts = get_accounts(ou_id)
 if len(accounts) == 0:
     print("No accounts found in Sandbox OU.")
     exit(0)
+print(f"Number of accounts in Sandbox OU: {len(accounts)}")
 tag_name=get_tag_name()
 accounts_to_expire = [] #list to store accounts to expire = []
 accounts_with_no_tag = []
@@ -80,7 +84,7 @@ for Id in accounts:
         accounts_with_no_tag.append(Id)
         print(f"Account {Id} does not have the {tag_name} tag.")
         continue
-    elif expiration_date.todate() < datetime.now().date():
+    elif datetime.strptime(expiration_date, '%Y-%m-%d').date() < datetime.now().date():
         accounts_to_expire.append(Id)
         print(f"Account {Id} has expiration date set to {expiration_date}. It needs to be expired.")
     else:
@@ -89,17 +93,6 @@ for Id in accounts:
 
 print(f"Accounts to expire: {accounts_to_expire}")
 print(f"Number of accounts to expire: {len(accounts_to_expire)}")
-
-
 print(f"Accounts in Sandbox OU: {accounts}")
-print(f"Number of accounts in Sandbox OU: {len(accounts)}")
-print(f"Account ID: {account_id}")
-print(f"Account Tags: {account_tags}")
-print(f"Root ID: {root_id}")
-print(f"OU ID: {ou_id}")
-print(f"Account ID: {account_id}")
-print(f"Account Tags: {account_tags}")
-
-#function to get tag name from systems manager parameter store
 
 
