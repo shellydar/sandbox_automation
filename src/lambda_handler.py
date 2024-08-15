@@ -10,10 +10,10 @@ def get_tag_name():
     return tag_name
 
 def get_accounts(ou_id):
-    response = org_client.list_tags_for_resource(arentId=ou_id)
+    response = org_client.list_accounts_for_parent(ParentId=ou_id)
     results = response['Accounts']
     while "NextToken" in response:
-        response = org_client.list_accounts(NextToken=response["NextToken"])
+        response = org_client.list_accounts_for_parent(ParentId=ou_id,NextToken=response["NextToken"])
         results.extend(response['Accounts'])
     return results
 
