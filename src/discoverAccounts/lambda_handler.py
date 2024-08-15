@@ -1,7 +1,13 @@
 import boto3
 import os
+import logging
 from datetime import datetime, timedelta
 
+
+logging.basicConfig()
+
+logger = logging.getLogger("lambda:retrieve_values")
+logger.setLevel(os.getenv("LOGLEVEL", "INFO"))
 org_client = boto3.client('organizations')
 
 def get_tag_name():
@@ -19,13 +25,13 @@ def get_accounts(ou_id):
 
 #get OU ID for Sandbox OU
 def get_ou_id(root_id, ou_name):
-    print(f"getOU ID for Root ID: {root_id} and ou_name {ou_name}")
+    logger.info(f"getOU ID for Root ID: {root_id} and ou_name {ou_name}")
     response = org_client.list_organizational_units_for_parent(ParentId=root_id)
     if "NextToken" in response:
         while "NextToken" in response:
             response = org_client.list_organizational_units_for_parent(ParentId=root_id, NextToken=response["NextToken"])
             for ou in response["OrganizationalUnits"]:
-                print(f"Response: {response}")
+                logger.info(f"Response: {response}")
                 if ou["Name"].lower() == ou_name.lower:
                     return ou["Id"]
     else:
@@ -63,17 +69,17 @@ def get_account_expiration_date(account_id, tag_name):
 
 
 root_id = org_client.list_roots()['Roots'][0]['Id']
-print(f"Root ID: {root_id}")
+logger.info(f"Root ID: {root_id}")
 ou_id = get_ou_id(root_id=root_id, ou_name="Sandbox")
-print(f"Sandbox OU ID: {ou_id}")
+logger.info(f"Sandbox OU ID: {ou_id}")
 if ou_id is None: 
-    print("Sandbox OU not found.")
+    logger.error("Sandbox OU not found.")
     exit(1)
 accounts = get_accounts(ou_id)
 if len(accounts) == 0:
-    print("No accounts found in Sandbox OU.")
+    logger.info("No accounts found in Sandbox OU.")
     exit(0)
-print(f"Number of accounts in Sandbox OU: {len(accounts)}")
+logger.info(f"Number of accounts in Sandbox OU: {len(accounts)}")
 tag_name=get_tag_name()
 accounts_to_expire = [] #list to store accounts to expire = []
 accounts_with_no_tag = []
@@ -82,17 +88,22 @@ for Id in accounts:
     expiration_date=get_account_expiration_date(Id=Id, tah_name=tag_name)
     if expiration_date is None:
         accounts_with_no_tag.append(Id)
-        print(f"Account {Id} does not have the {tag_name} tag.")
+        logger.info(f"Account {Id} does not have the {tag_name} tag.")
         continue
     elif datetime.strptime(expiration_date, '%Y-%m-%d').date() < datetime.now().date():
         accounts_to_expire.append(Id)
-        print(f"Account {Id} has expiration date set to {expiration_date}. It needs to be expired.")
+        logger.info(f"Account {Id} has expiration date set to {expiration_date}. It needs to be expired.")
     else:
         accounts_to_keep.append(Id)
-        print(f"Account {Id} does not need to be expired. It's expiration date is:{expiration_date} ")
+        prlogger.infoint(f"Account {Id} does not need to be expired. It's expiration date is:{expiration_date} ")
 
-print(f"Accounts to expire: {accounts_to_expire}")
-print(f"Number of accounts to expire: {len(accounts_to_expire)}")
-print(f"Accounts in Sandbox OU: {accounts}")
+logger.info(f"Accounts in Sandbox OU: {accounts}")
+logger.info(f"Accounts to expire: {accounts_to_expire}")
+logger.info(f"Number of accounts to expire: {len(accounts_to_expire)}")
+logger.info(f"Accounts with no {tag_name} tag: {accounts_with_no_tag}")
+logger.info(f"Number of accounts with no {tag_name} tag: {len(accounts_with_no_tag)}")
+logger.info(f"Accounts to keep: {accounts_to_keep}")
+logger.info(f"Number of accounts to keep: {len(accounts_to_keep)}")
+
 
 

@@ -36,6 +36,7 @@ def get_ou_id(root_id, ou_name):
 def set_account_expiration_date(account_id, tag_name, months):
     response = org_client.list_tags_for_resource(ResourceId=account_id)
     expiration_date = (datetime.now() + timedelta(days=30*months)).strftime('%Y-%m-%d')
+    print(f"Account ID: {account_id}, Tag Name: {tag_name}, Expiration Date: {expiration_date}")
     for tag in response["Tags"]:
         if tag["Key"] == tag_name:
             print(f"Tag {tag_name} already exists for account {account_id} with value {tag["Value"]} Updating value to {expiration_date}")
@@ -54,7 +55,7 @@ def lambda_handler(event, context):
         account_id = event["detail"]["serviceEventDetails"]["createManagedAccountStatus"]["account"]["accountId"]
         tag_name=get_tag_name()
         expiration_period=get_expiration_period()
-        set_account_expiration_date(ou_id, tag_name, int(expiration_period))
+        set_account_expiration_date(account_id, tag_name, int(expiration_period))
     else:
         print("Event not related to Sandbox OU. Exiting.")
         exit(0)
