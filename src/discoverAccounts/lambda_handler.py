@@ -2,6 +2,7 @@ import boto3
 import os
 import logging
 from datetime import datetime, timedelta
+import json
 
 
 logging.basicConfig()
@@ -67,6 +68,22 @@ def get_account_expiration_date(account_id, tag_name):
                 raise ValueError("Incorrect data format, should be YYYY-MM-DD")
     return None
 
+def push_to_eventbridge(Id, expiration_date):
+    client = boto3.client('events')
+    response = client.put_events(
+        Entries=[
+            {
+                'Source': 'account_expiration',
+                'DetailType': 'Account Expiration',
+                'Detail': json.dumps({'accountId': Id, 'expirationDate': expiration_date}),
+                'Resources': [
+                    Id
+                ],
+                'EventBusName': 'default'
+            }
+        ]
+    )
+    return response
 
 root_id = org_client.list_roots()['Roots'][0]['Id']
 logger.info(f"Root ID: {root_id}")
@@ -92,6 +109,7 @@ for Id in accounts:
         continue
     elif datetime.strptime(expiration_date, '%Y-%m-%d').date() < datetime.now().date():
         accounts_to_expire.append(Id)
+        push_to_eventbridge(Id=Id, expiration_date=expiration_date)
         logger.info(f"Account {Id} has expiration date set to {expiration_date}. It needs to be expired.")
     else:
         accounts_to_keep.append(Id)
