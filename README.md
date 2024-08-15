@@ -4,7 +4,7 @@ This project configures the following: Sansbox template with expiration date tag
 
 ## Architecture
 
-![architecture](doc/architecture.png)
+![architecture](doc/Architecture.png)
 
 
 ## Prerequisites
