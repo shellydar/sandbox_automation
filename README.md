@@ -19,5 +19,6 @@ This project configures the following: Sansbox template with expiration date tag
 | Parameter                |  Type  |         Default          | Description                                                                                                                                     |
 | ------------------------ | :----: | :----------------------: | ----------------------------------------------------------------------------------------------------------------------------------------------- |
 | Sandbox OU name                  | String |        Sandbox      |                                                                         |
-| parameter store location for expiration tag name        | String |  |Control_Tower/expiration_date                                                                                                          |
+| parameter store location for expiration tag name        | String | expiration_date |/Control_Tower/expiration_date                             |
+| parameter store location for expiration period (in months)       | String | 3 |/Control_Tower/account_expiration_period   |
 
