@@ -75,7 +75,7 @@ def push_to_eventbridge(Id, expiration_date):
             {
                 'Source': 'account_expiration',
                 'DetailType': 'Account Expiration',
-                'Detail': json.dumps({'accountId': Id, 'expirationDate': expiration_date}),
+                'Detail': json.dumps({'eventName': 'account_expiration','accountId': Id, 'expirationDate': expiration_date}),
                 'Resources': [
                     Id
                 ],

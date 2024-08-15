@@ -52,6 +52,11 @@ def lambda_handler(event, context):
         print(f"Account {event["Detail"]["accountId"]} marked based on expiration date {event["Detail"]["expirationDate"]}. Processing...")
         account_id = event["Detail"]["accountId"]
         suspendAccount(account_id)
-    else:
-        print("Event not related to Sandbox OU. Exiting.")
+    elif event["Source"]== "account_budget":
+        print(f"Account {event["Detail"]["accountId"]} marked based on budget exeeded. Processing...")
+        account_id = event["Detail"]["accountId"]
+        suspendAccount(account_id)
         exit(0)
+    else:
+        print("Invalid event source. Exiting...")
+        exit(1)

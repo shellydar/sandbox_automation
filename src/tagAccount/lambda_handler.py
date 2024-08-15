@@ -45,17 +45,24 @@ def set_account_expiration_date(account_id, tag_name, months):
 
 def lambda_handler(event, context):
     root_id = org_client.list_roots()['Roots'][0]['Id']
+    tag_name=get_tag_name()
+    expiration_period=get_expiration_period()
     print(f"Root ID: {root_id}")
     ou_id = get_ou_id(root_id=root_id, ou_name="Sandbox")
     print(f"Sandbox OU ID: {ou_id}")
     if ou_id is None: 
         print("Sandbox OU not found.")
         exit(1)
-    if event["detail"]["eventName"] == "CreateManagedAccount" and event["detail"]["serviceEventDetails"]["createManagedAccountStatus"]["organizationalUnit"]["organizationalUnitId"] == ou_id :
-        account_id = event["detail"]["serviceEventDetails"]["createManagedAccountStatus"]["account"]["accountId"]
-        tag_name=get_tag_name()
-        expiration_period=get_expiration_period()
+    if event["detail"]["eventName"] == "CreateManagedAccount" :
+        if event["detail"]["serviceEventDetails"]["createManagedAccountStatus"]["organizationalUnit"]["organizationalUnitId"] == ou_id :
+            account_id = event["detail"]["serviceEventDetails"]["createManagedAccountStatus"]["account"]["accountId"]
+            set_account_expiration_date(account_id, tag_name, int(expiration_period))
+            exit(0)
+        else:
+            print("Event not related to Sandbox OU. Exiting.")
+            exit(0)
+    elif event["detail"]["eventName"] == "NewAccountCreated" :
+        account_id = event["detail"]["accountId"]
+        expiration_period = event["detail"]["expirationPeriod"]
         set_account_expiration_date(account_id, tag_name, int(expiration_period))
-    else:
-        print("Event not related to Sandbox OU. Exiting.")
         exit(0)
