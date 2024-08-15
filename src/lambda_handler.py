@@ -17,6 +17,15 @@ def get_accounts(ou_id):
         results.extend(response['Accounts'])
     return results
 
+#get OU ID for Sandbox OU
+def get_ou_id(root_id, ou_name):
+    response = org_client.list_organizational_units_for_parent(ParentId=root_id)
+    while 'NextToken' in response:
+        response = org_client.list_organizational_units_for_parent(ParentId=root_id, NextToken=response['NextToken'])
+        for ou in response['OrganizationalUnits']:
+            if ou['Name'] == ou_name:
+                return ou['Id']
+
 def get_account_tags(account_id):
     response = org_client.list_tags_for_resource(ResourceId=account_id)
     results = response["Tags"]
@@ -36,7 +45,7 @@ def check_expiration(tag_value):
 # list accounts in AWS OU called "Sandbox"
 
 root_id = org_client.list_roots()['Roots'][0]['Id']
-ou_id = [ou['Id'] for ou in org_client.list_organizational_units_for_parent(ParentId=root_id)['OrganizationalUnits'] if ou['Name'] == 'Sandbox'][0]
+ou_id = get_ou_id(root_id, "Sandbox")
 accounts = get_accounts(ou_id)
 tag_name=get_tag_name()
 accounts_to_expire = [] #list to store accounts to expire = []
