@@ -1,7 +1,12 @@
 import boto3
 import os
 from datetime import datetime, timedelta
+import logging
 
+logging.basicConfig()
+
+logger = logging.getLogger("lambda:retrieve_values")
+logger.setLevel(os.getenv("LOGLEVEL", "INFO"))
 org_client = boto3.client('organizations')
 
 def get_tag_name():
@@ -17,19 +22,19 @@ def get_expiration_period():
 
 def suspendAccount(account_id):
     response = org_client.close_account(AccountId=account_id)
-    print(f"Account {account_id} is closed")
+    logger.info(f"Account {account_id} is closed")
     return response
 
 def lambda_handler(event, context):
     if event["Source"]== "account_expiration":
-        print(f"Account {event["Detail"]["accountId"]} marked based on expiration date {event["Detail"]["expirationDate"]}. Processing...")
+        logger.info(f"Account {event["Detail"]["accountId"]} marked based on expiration date {event["Detail"]["expirationDate"]}. Processing...")
         account_id = event["Detail"]["accountId"]
         suspendAccount(account_id)
     elif event["Source"]== "account_budget":
-        print(f"Account {event["Detail"]["accountId"]} marked based on budget exeeded. Processing...")
+        logger.info(f"Account {event["Detail"]["accountId"]} marked based on budget exeeded. Processing...")
         account_id = event["Detail"]["accountId"]
         suspendAccount(account_id)
         exit(0)
     else:
-        print("Invalid event source. Exiting...")
+        logger.error("Invalid event source. Exiting...")
         exit(1)
