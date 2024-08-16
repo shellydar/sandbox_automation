@@ -22,7 +22,7 @@ def get_expiration_period():
 
 def suspendAccount(account_id):
     response = org_client.close_account(AccountId=account_id)
-    logger.info(f"Account {account_id} is closed")
+    logger.info(f"Account {account_id} is now closed")
     return response
 
 def lambda_handler(event, context):

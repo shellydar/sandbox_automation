@@ -1,0 +1,165 @@
+AWSTemplateFormatVersion: 2010-09-09
+Transform: 'AWS::LanguageExtensions'
+Description: Template to deploy the automation of sandbox account expiation
+Parameters: 
+  ExpirationPeriod:
+    Type: Number
+    Default: 3
+    MinValue: 1
+    MaxValue: 36
+    ConstraintDescription: Must be a number between 1 and 36
+    Description: The expiration period in months for a sandbox account  
+  tagName:
+    Type:  String
+    Default: 'account_expiration'
+    Description: the tag key to be added to sandbox account
+Resources: 
+  parameterExpirationPeriod:
+    Type: AWS::SSM::Parameter
+    Properties: 
+      Name: /Control_Tower/account_expiration_period
+      Type: String
+      Value: !Ref ExpirationPeriod
+  parameterTagExpirationKey:
+    Type: AWS::SSM::Parameter
+    Properties: 
+      Name: /Control_Tower/account_expiration
+      Type: String
+      Value: !Ref tagName
+  DiscoverAccountLambda:
+    Type: AWS::Lambda::Function
+    Properties: 
+      CodeUri: src/discoverAccount
+      FunctionName: DiscoverAccount
+      Handler: lambda_handler
+      Role: !Ref DiscoverAccountRole
+      Runtime: Python3.12
+      Timeout: 120
+  DiscoverAccountPolicy:
+    Type: AWS::IAM::Policy
+    PolicyName: "DiscoverAccountPolicy"
+    Roles: 
+      - !Ref DiscoverAccountRole
+    Properties: 
+      PolicyDocument: 
+        Version: 2012-10-17
+        Statement: 
+          - Effect: Allow
+            Action: 
+              - ssm:Describe*
+              - ssm:GetParameter
+              - ssm:GetParameters
+              - ssm:GetParametersByPath
+            Resource: '*'
+          - Effect: Allow
+            Action:
+              - logs:CreateLogGroup
+            Resource: '*'
+          - Effect: Allow
+            Action:
+              - logs:CreateLogStream
+              - logs:PutLogEvents
+            Resource: '*'
+          - Effect: Allow
+            Action:
+              - organizations:Describe*
+              - organizations:List*
+            Resource: '*'
+          - Effect: Allow
+            Action:
+              - account:GetPrimaryEmail
+            Resource: '*'
+  DiscoverAccountRole:
+    Type: AWS::IAM::Role
+    Properties: 
+      AssumeRolePolicyDocument: 
+        Version: 2012-10-17
+        Statement: 
+          - 
+            Effect: Allow
+            Principal: 
+              Service: lambda.amazonaws.com
+            Action: 
+              - sts:AssumeRole
+  tagAccountRole:
+    Type: AWS::IAM::Role
+    Properties: 
+      AssumeRolePolicyDocument: 
+        Version: 2012-10-17
+        Statement: 
+          - 
+            Effect: Allow
+            Principal: 
+              Service: lambda.amazonaws.com
+            Action: 
+              - sts:AssumeRole
+  tagAccountPolicy:
+    Type: AWS::IAM::Policy
+    PolicyName: "tagAccountPolicy"
+    Roles: 
+      - !Ref tagAccountRole
+    Properties: 
+      PolicyDocument: 
+        Version: 2012-10-17
+        Statement: 
+          - Effect: Allow
+            Action: 
+              - ssm:Describe*
+              - ssm:GetParameter
+              - ssm:GetParameters
+              - ssm:GetParametersByPath
+            Resource: '*'
+          - Effect: Allow
+            Action:
+              - logs:CreateLogGroup
+            Resource: '*'
+          - Effect: Allow
+            Action:
+              - logs:CreateLogStream
+              - logs:PutLogEvents
+            Resource: '*'
+          - Effect: Allow
+            Action:
+              - organizations:Describe*
+              - organizations:List*
+            Resource: '*'
+          - Effect: Allow
+            Action:
+              - organizations:TagResource
+              - organizations:UntagResource
+            Resource: '*'
+  eventBridgeruleDiscovery:
+    Type: AWS::Events::Rule
+    Properties: 
+      Name: "DiscoverAccountRule"
+      ScheduleExpression: "cron(0 0 * * ? *)"
+      State: "ENABLED"
+      Targets: 
+        - 
+          Arn: !GetAtt DiscoverAccountLambda.Arn
+          Id: "TargetID1"
+  lambdaInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties: 
+      FunctionName: !GetAtt DiscoverAccountLambda.Arn
+      Action: "lambda:InvokeFunction"
+      Principal: "events.amazonaws.com"
+      SourceArn: !GetAtt eventBridgerule.Arn
+  eventBridgeRuleTag: 
+    Type: AWS::Events::Rule
+    Properties: 
+      Name: "TagAccountRule"
+      State: "ENABLED"
+      Targets: 
+        - 
+          Arn: !GetAtt tagAccountLambda.Arn
+          Id: "TargetID1"
+  tagAccountLambda:
+    Type: AWS::Lambda::Function
+    Properties: 
+      CodeUri: src/tagAccount
+      FunctionName: TagAccount
+      Handler: lambda_handler
+      Role: !Ref tagAccountRole
+      Runtime: Python3.12
+      Timeout: 120
