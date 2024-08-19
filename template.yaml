@@ -29,7 +29,7 @@ Resources:
   DiscoverAccountLambda:
     Type: AWS::Lambda::Function
     Properties: 
-      CodeUri: src/discoverAccount
+      Code: src/discoverAccount
       FunctionName: DiscoverAccount
       Handler: lambda_handler
       Role: !Ref DiscoverAccountRole
